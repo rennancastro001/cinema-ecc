@@ -147,62 +147,47 @@
         const rows = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
         const cols = Array.from({ length: 12 }, (_, i) => i + 1);
 
-        // Função para carregar assentos vendidos
-        async function loadSoldSeats() {
-            try {
-                const response = await fetch('http://localhost:3000/assentos.json');
-                const data = await response.json();
-                return data.soldSeats || [];
-            } catch (error) {
-                console.error('Erro ao carregar assentos vendidos:', error);
-                return [];
-            }
+        // Função para carregar assentos vendidos do localStorage
+        function loadSoldSeats() {
+            const soldSeats = JSON.parse(localStorage.getItem('soldSeats')) || [];
+            return soldSeats;
         }
 
-        // Função para salvar assentos vendidos
-        async function saveSoldSeats(soldSeats) {
-            try {
-                await fetch('http://localhost:3000/assentos.json', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ soldSeats })
-                });
-            } catch (error) {
-                console.error('Erro ao salvar assentos vendidos:', error);
-            }
+        // Função para salvar assentos vendidos no localStorage
+        function saveSoldSeats(soldSeats) {
+            localStorage.setItem('soldSeats', JSON.stringify(soldSeats));
         }
 
         // Gerar mapa de assentos dinamicamente
-        loadSoldSeats().then(soldSeats => {
-            const rowsContainer = document.getElementById('rows-container');
-            rows.forEach(row => {
-                const rowDiv = document.createElement('div');
-                rowDiv.classList.add('row');
-                const rowLabel = document.createElement('div');
-                rowLabel.classList.add('row-label');
-                rowLabel.textContent = row;
-                rowDiv.appendChild(rowLabel);
-                const seatsDiv = document.createElement('div');
-                seatsDiv.classList.add('seats');
-                cols.forEach(col => {
-                    const seatId = `${row}${col.toString().padStart(2, '0')}`;
-                    const seat = document.createElement('div');
-                    seat.classList.add('seat');
-                    seat.textContent = col;
-                    if (soldSeats.includes(seatId)) {
-                        seat.classList.add('sold');
+        const soldSeats = loadSoldSeats();
+        const rowsContainer = document.getElementById('rows-container');
+        rows.forEach(row => {
+            const rowDiv = document.createElement('div');
+            rowDiv.classList.add('row');
+            const rowLabel = document.createElement('div');
+            rowLabel.classList.add('row-label');
+            rowLabel.textContent = row;
+            rowDiv.appendChild(rowLabel);
+            const seatsDiv = document.createElement('div');
+            seatsDiv.classList.add('seats');
+            cols.forEach(col => {
+                const seatId = `${row}${col.toString().padStart(2, '0')}`;
+                const seat = document.createElement('div');
+                seat.classList.add('seat');
+                seat.textContent = col;
+                if (soldSeats.includes(seatId)) {
+                    seat.classList.add('sold');
+                }
+                seat.addEventListener('click', () => {
+                    if (!seat.classList.contains('sold')) {
+                        seat.classList.toggle('selected');
+                        updateTotalPrice();
                     }
-                    seat.addEventListener('click', () => {
-                        if (!seat.classList.contains('sold')) {
-                            seat.classList.toggle('selected');
-                            updateTotalPrice();
-                        }
-                    });
-                    seatsDiv.appendChild(seat);
                 });
-                rowDiv.appendChild(seatsDiv);
-                rowsContainer.appendChild(rowDiv);
+                seatsDiv.appendChild(seat);
             });
+            rowDiv.appendChild(seatsDiv);
+            rowsContainer.appendChild(rowDiv);
         });
 
         // Função para calcular o preço total
@@ -214,7 +199,7 @@
 
         // Lógica para enviar os dados via WhatsApp
         const form = document.getElementById('purchase-form');
-        form.addEventListener('submit', async (e) => {
+        form.addEventListener('submit', (e) => {
             e.preventDefault();
             const selectedSeats = Array.from(document.querySelectorAll('.seat.selected'));
             if (selectedSeats.length === 0) {
@@ -239,7 +224,7 @@
             const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
 
             // Marcar os assentos como vendidos
-            const soldSeats = await loadSoldSeats();
+            const soldSeats = loadSoldSeats();
             selectedSeats.forEach(seat => {
                 const seatId = seat.parentElement.parentElement.querySelector('.row-label').textContent + seat.textContent;
                 seat.classList.remove('selected');
@@ -248,7 +233,7 @@
                     soldSeats.push(seatId);
                 }
             });
-            await saveSoldSeats(soldSeats);
+            saveSoldSeats(soldSeats);
 
             // Redirecionar para o WhatsApp
             window.open(whatsappUrl, '_blank');
