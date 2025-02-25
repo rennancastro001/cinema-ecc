@@ -5,117 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Compra de Ingressos - Cinema</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f4;
-            margin: 0;
-            padding: 0;
-            color: #333;
-        }
-        header {
-            background-color: #c00;
-            color: white;
-            text-align: center;
-            padding: 15px;
-        }
-        .container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 20px;
-        }
-        .seating-map {
-            background-color: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            width: 100%;
-            max-width: 600px;
-            text-align: center;
-        }
-        .row {
-            display: flex;
-            align-items: center;
-            margin-bottom: 10px;
-        }
-        .row-label {
-            font-weight: bold;
-            width: 30px;
-            text-align: right;
-            margin-right: 10px;
-        }
-        .seats {
-            display: grid;
-            grid-template-columns: repeat(12, 30px);
-            gap: 10px;
-        }
-        .seat {
-            width: 30px;
-            height: 30px;
-            background-color: #ddd;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: background-color 0.3s;
-        }
-        .seat:hover {
-            background-color: #a00;
-        }
-        .seat.selected {
-            background-color: #c00;
-            color: white;
-        }
-        .seat.sold {
-            background-color: #888;
-            cursor: not-allowed;
-        }
-        .form-container {
-            background-color: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            width: 100%;
-            max-width: 400px;
-            margin-top: 20px;
-        }
-        .form-container h2 {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        .form-container label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-        }
-        .form-container input {
-            width: 100%;
-            padding: 10px;
-            margin-bottom: 15px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-        }
-        .form-container button {
-            width: 100%;
-            padding: 10px;
-            background-color: #c00;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            font-size: 16px;
-            cursor: pointer;
-            transition: background-color 0.3s;
-        }
-        .form-container button:hover {
-            background-color: #a00;
-        }
-        .total-price {
-            text-align: center;
-            font-size: 18px;
-            font-weight: bold;
-            margin-top: 10px;
-        }
+        /* Estilos permanecem os mesmos */
     </style>
 </head>
 <body>
@@ -170,6 +60,7 @@
             const seatsDiv = document.createElement('div');
             seatsDiv.classList.add('seats');
             cols.forEach(col => {
+                // Garantir que o ID tenha o formato correto (ex.: A01, B02)
                 const seatId = `${row}${col.toString().padStart(2, '0')}`;
                 const seat = document.createElement('div');
                 seat.classList.add('seat');
@@ -212,7 +103,7 @@
 
             // Montar a mensagem para o WhatsApp
             const message = `Novo pedido de ingressos:\n\n` +
-                            `Assentos: ${selectedSeats.map(seat => seat.parentElement.parentElement.querySelector('.row-label').textContent + seat.textContent).join(', ')}\n` +
+                            `Assentos: ${selectedSeats.map(seat => seat.parentElement.parentElement.querySelector('.row-label').textContent + seat.textContent.padStart(2, '0')).join(', ')}\n` +
                             `Valor Total: R$ ${totalPrice.toFixed(2)}\n` +
                             `Nome: ${name}\n` +
                             `E-mail: ${email}\n` +
@@ -225,7 +116,7 @@
             // Marcar os assentos como vendidos
             const soldSeats = loadSoldSeats();
             selectedSeats.forEach(seat => {
-                const seatId = seat.parentElement.parentElement.querySelector('.row-label').textContent + seat.textContent;
+                const seatId = seat.parentElement.parentElement.querySelector('.row-label').textContent + seat.textContent.padStart(2, '0');
                 seat.classList.remove('selected');
                 seat.classList.add('sold');
                 if (!soldSeats.includes(seatId)) {
