@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Compra de Ingressos - Cinema</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+            color: #333;
+        }
+        header {
+            background-color: #c00;
+            color: white;
+            text-align: center;
+            padding: 15px;
+        }
+        .container {
+            display: flex;
+            justify-content: space-around;
+            padding: 20px;
+        }
+        .seating-map {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .seating-map h2 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .seats {
+            display: grid;
+            grid-template-columns: repeat(12, 40px);
+            gap: 10px;
+            justify-content: center;
+        }
+        .seat {
+            width: 40px;
+            height: 40px;
+            background-color: #ddd;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .seat:hover {
+            background-color: #a00;
+        }
+        .seat.selected {
+            background-color: #c00;
+            color: white;
+        }
+        .seat.sold {
+            background-color: #888;
+            cursor: not-allowed;
+        }
+        .form-container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            max-width: 300px;
+        }
+        .form-container h2 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .form-container label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .form-container input {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .form-container button {
+            width: 100%;
+            padding: 10px;
+            background-color: #c00;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .form-container button:hover {
+            background-color: #a00;
+        }
+        .total-price {
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Cinema XYZ - Compre Seu Ingresso</h1>
+    </header>
+    <div class="container">
+        <!-- Mapa de Assentos -->
+        <div class="seating-map">
+            <h2>Mapa de Assentos</h2>
+            <div class="seats">
+                <!-- Gerando os assentos dinamicamente -->
+                <script>
+                    const rows = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+                    const cols = Array.from({ length: 12 }, (_, i) => i + 1);
+                    const seatsContainer = document.querySelector('.seats');
+
+                    // Carregar assentos vendidos do localStorage
+                    const soldSeats = JSON.parse(localStorage.getItem('soldSeats')) || [];
+
+                    rows.forEach(row => {
+                        cols.forEach(col => {
+                            const seatId = `${row}${col.toString().padStart(2, '0')}`;
+                            const seat = document.createElement('div');
+                            seat.classList.add('seat');
+                            seat.textContent = seatId;
+
+                            // Verificar se o assento já foi vendido
+                            if (soldSeats.includes(seatId)) {
+                                seat.classList.add('sold');
+                            }
+
+                            seat.addEventListener('click', () => {
+                                if (!seat.classList.contains('sold')) {
+                                    seat.classList.toggle('selected');
+                                    updateTotalPrice();
+                                }
+                            });
+                            seatsContainer.appendChild(seat);
+                        });
+                    });
+
+                    // Função para calcular o preço total
+                    function updateTotalPrice() {
+                        const selectedSeats = document.querySelectorAll('.seat.selected').length;
+                        const totalPrice = selectedSeats * 5; // R$ 5,00 por assento
+                        document.getElementById('total-price').textContent = `Total: R$ ${totalPrice.toFixed(2)}`;
+                    }
+                </script>
+            </div>
+            <div class="total-price" id="total-price">Total: R$ 0.00</div>
+        </div>
+
+        <!-- Formulário de Compra -->
+        <div class="form-container">
+            <h2>Dados do Comprador</h2>
+            <form id="purchase-form">
+                <label for="name">Nome:</label>
+                <input type="text" id="name" name="name" placeholder="Seu nome" required>
+
+                <label for="email">E-mail:</label>
+                <input type="email" id="email" name="email" placeholder="Seu e-mail" required>
+
+                <label for="phone">Telefone:</label>
+                <input type="tel" id="phone" name="phone" placeholder="Seu telefone" required>
+
+                <button type="submit">Comprar Ingressos</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // URL do Web App do Google Apps Script
+        const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbxtejLcKHgNhej5KZNKUuBvB7bLYijtU7xU8oe2TCzCvsIE6_JFsBMr1yDm1DEUlnYI/exec";
+
+        // Lógica para enviar os dados do formulário via WhatsApp e Google Sheets
+        const form = document.getElementById('purchase-form');
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const selectedSeats = Array.from(document.querySelectorAll('.seat.selected'));
+
+            if (selectedSeats.length === 0) {
+                alert('Por favor, selecione pelo menos um assento.');
+                return;
+            }
+
+            const name = document.getElementById('name').value;
+            const email = document.getElementById('email').value;
+            const phone = document.getElementById('phone').value;
+            const totalPrice = selectedSeats.length * 5;
+
+            // Montar a mensagem para o WhatsApp
+            const message = `Novo pedido de ingressos:\n\n` +
+                            `Assentos: ${selectedSeats.map(seat => seat.textContent).join(', ')}\n` +
+                            `Valor Total: R$ ${totalPrice.toFixed(2)}\n` +
+                            `Nome: ${name}\n` +
+                            `E-mail: ${email}\n` +
+                            `Telefone: ${phone}`;
+
+            // URL do WhatsApp com o número fornecido
+            const whatsappNumber = '5584981366066'; // Substitua pelo seu número (com código do país)
+            const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
+
+            // Enviar os dados para o Google Sheets
+            const data = {
+                seats: selectedSeats.map(seat => seat.textContent),
+                name: name,
+                email: email,
+                phone: phone,
+                total: totalPrice.toFixed(2)
+            };
+
+            try {
+                const response = await fetch(GOOGLE_SHEETS_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    console.log("Dados salvos no Google Sheets!");
+                } else {
+                    console.error("Erro ao salvar no Google Sheets:", result.error);
+                }
+            } catch (error) {
+                console.error("Erro ao enviar dados para o Google Sheets:", error);
+            }
+
+            // Marcar os assentos como vendidos
+            const soldSeats = JSON.parse(localStorage.getItem('soldSeats')) || [];
+            selectedSeats.forEach(seat => {
+                seat.classList.remove('selected');
+                seat.classList.add('sold');
+                soldSeats.push(seat.textContent);
+            });
+
+            // Salvar os assentos vendidos no localStorage
+            localStorage.setItem('soldSeats', JSON.stringify(soldSeats));
+
+            // Redirecionar para o WhatsApp
+            window.open(whatsappUrl, '_blank');
+
+            // Limpar o formulário e atualizar o preço total
+            form.reset();
+            updateTotalPrice();
+        });
+
+        // Função para atualizar o preço total
+        function updateTotalPrice() {
+            const selectedSeats = document.querySelectorAll('.seat.selected').length;
+            const totalPrice = selectedSeats * 5; // R$ 5,00 por assento
+            document.getElementById('total-price').textContent = `Total: R$ ${totalPrice.toFixed(2)}`;
+        }
+    </script>
+</body>
+</html>
