@@ -20,7 +20,8 @@
         }
         .container {
             display: flex;
-            justify-content: space-around;
+            flex-direction: column;
+            align-items: center;
             padding: 20px;
         }
         .seating-map {
@@ -28,20 +29,29 @@
             padding: 20px;
             border-radius: 8px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-        .seating-map h2 {
+            width: 100%;
+            max-width: 600px;
             text-align: center;
-            margin-bottom: 20px;
+        }
+        .row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .row-label {
+            font-weight: bold;
+            width: 30px;
+            text-align: right;
+            margin-right: 10px;
         }
         .seats {
             display: grid;
-            grid-template-columns: repeat(12, 40px);
+            grid-template-columns: repeat(12, 30px);
             gap: 10px;
-            justify-content: center;
         }
         .seat {
-            width: 40px;
-            height: 40px;
+            width: 30px;
+            height: 30px;
             background-color: #ddd;
             display: flex;
             align-items: center;
@@ -66,7 +76,9 @@
             padding: 20px;
             border-radius: 8px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            max-width: 300px;
+            width: 100%;
+            max-width: 400px;
+            margin-top: 20px;
         }
         .form-container h2 {
             text-align: center;
@@ -114,83 +126,101 @@
         <!-- Mapa de Assentos -->
         <div class="seating-map">
             <h2>Mapa de Assentos</h2>
-            <div class="seats">
-                <!-- Gerando os assentos dinamicamente -->
-                <script>
-                    const rows = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
-                    const cols = Array.from({ length: 12 }, (_, i) => i + 1);
-                    const seatsContainer = document.querySelector('.seats');
-
-                    // Carregar assentos vendidos do localStorage
-                    const soldSeats = JSON.parse(localStorage.getItem('soldSeats')) || [];
-
-                    rows.forEach(row => {
-                        cols.forEach(col => {
-                            const seatId = `${row}${col.toString().padStart(2, '0')}`;
-                            const seat = document.createElement('div');
-                            seat.classList.add('seat');
-                            seat.textContent = seatId;
-
-                            // Verificar se o assento já foi vendido
-                            if (soldSeats.includes(seatId)) {
-                                seat.classList.add('sold');
-                            }
-
-                            seat.addEventListener('click', () => {
-                                if (!seat.classList.contains('sold')) {
-                                    seat.classList.toggle('selected');
-                                    updateTotalPrice();
-                                }
-                            });
-                            seatsContainer.appendChild(seat);
-                        });
-                    });
-
-                    // Função para calcular o preço total
-                    function updateTotalPrice() {
-                        const selectedSeats = document.querySelectorAll('.seat.selected').length;
-                        const totalPrice = selectedSeats * 5; // R$ 5,00 por assento
-                        document.getElementById('total-price').textContent = `Total: R$ ${totalPrice.toFixed(2)}`;
-                    }
-                </script>
-            </div>
+            <div id="rows-container"></div>
             <div class="total-price" id="total-price">Total: R$ 0.00</div>
         </div>
-
         <!-- Formulário de Compra -->
         <div class="form-container">
             <h2>Dados do Comprador</h2>
             <form id="purchase-form">
                 <label for="name">Nome:</label>
                 <input type="text" id="name" name="name" placeholder="Seu nome" required>
-
                 <label for="email">E-mail:</label>
                 <input type="email" id="email" name="email" placeholder="Seu e-mail" required>
-
                 <label for="phone">Telefone:</label>
                 <input type="tel" id="phone" name="phone" placeholder="Seu telefone" required>
-
                 <button type="submit">Comprar Ingressos</button>
             </form>
         </div>
     </div>
-
     <script>
-        // URL do Web App do Google Apps Script
-        const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbxtejLcKHgNhej5KZNKUuBvB7bLYijtU7xU8oe2TCzCvsIE6_JFsBMr1yDm1DEUlnYI/exec";
+        const rows = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+        const cols = Array.from({ length: 12 }, (_, i) => i + 1);
 
-        // Lógica para enviar os dados do formulário via WhatsApp e Google Sheets
+        // Função para carregar assentos vendidos
+        async function loadSoldSeats() {
+            try {
+                const response = await fetch('http://localhost:3000/assentos.json');
+                const data = await response.json();
+                return data.soldSeats || [];
+            } catch (error) {
+                console.error('Erro ao carregar assentos vendidos:', error);
+                return [];
+            }
+        }
+
+        // Função para salvar assentos vendidos
+        async function saveSoldSeats(soldSeats) {
+            try {
+                await fetch('http://localhost:3000/assentos.json', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ soldSeats })
+                });
+            } catch (error) {
+                console.error('Erro ao salvar assentos vendidos:', error);
+            }
+        }
+
+        // Gerar mapa de assentos dinamicamente
+        loadSoldSeats().then(soldSeats => {
+            const rowsContainer = document.getElementById('rows-container');
+            rows.forEach(row => {
+                const rowDiv = document.createElement('div');
+                rowDiv.classList.add('row');
+                const rowLabel = document.createElement('div');
+                rowLabel.classList.add('row-label');
+                rowLabel.textContent = row;
+                rowDiv.appendChild(rowLabel);
+                const seatsDiv = document.createElement('div');
+                seatsDiv.classList.add('seats');
+                cols.forEach(col => {
+                    const seatId = `${row}${col.toString().padStart(2, '0')}`;
+                    const seat = document.createElement('div');
+                    seat.classList.add('seat');
+                    seat.textContent = col;
+                    if (soldSeats.includes(seatId)) {
+                        seat.classList.add('sold');
+                    }
+                    seat.addEventListener('click', () => {
+                        if (!seat.classList.contains('sold')) {
+                            seat.classList.toggle('selected');
+                            updateTotalPrice();
+                        }
+                    });
+                    seatsDiv.appendChild(seat);
+                });
+                rowDiv.appendChild(seatsDiv);
+                rowsContainer.appendChild(rowDiv);
+            });
+        });
+
+        // Função para calcular o preço total
+        function updateTotalPrice() {
+            const selectedSeats = document.querySelectorAll('.seat.selected').length;
+            const totalPrice = selectedSeats * 5; // R$ 5,00 por assento
+            document.getElementById('total-price').textContent = `Total: R$ ${totalPrice.toFixed(2)}`;
+        }
+
+        // Lógica para enviar os dados via WhatsApp
         const form = document.getElementById('purchase-form');
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
-
             const selectedSeats = Array.from(document.querySelectorAll('.seat.selected'));
-
             if (selectedSeats.length === 0) {
                 alert('Por favor, selecione pelo menos um assento.');
                 return;
             }
-
             const name = document.getElementById('name').value;
             const email = document.getElementById('email').value;
             const phone = document.getElementById('phone').value;
@@ -198,7 +228,7 @@
 
             // Montar a mensagem para o WhatsApp
             const message = `Novo pedido de ingressos:\n\n` +
-                            `Assentos: ${selectedSeats.map(seat => seat.textContent).join(', ')}\n` +
+                            `Assentos: ${selectedSeats.map(seat => seat.parentElement.parentElement.querySelector('.row-label').textContent + seat.textContent).join(', ')}\n` +
                             `Valor Total: R$ ${totalPrice.toFixed(2)}\n` +
                             `Nome: ${name}\n` +
                             `E-mail: ${email}\n` +
@@ -208,44 +238,17 @@
             const whatsappNumber = '5584981366066'; // Substitua pelo seu número (com código do país)
             const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
 
-            // Enviar os dados para o Google Sheets
-            const data = {
-                seats: selectedSeats.map(seat => seat.textContent),
-                name: name,
-                email: email,
-                phone: phone,
-                total: totalPrice.toFixed(2)
-            };
-
-            try {
-                const response = await fetch(GOOGLE_SHEETS_URL, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(data)
-                });
-
-                const result = await response.json();
-                if (result.success) {
-                    console.log("Dados salvos no Google Sheets!");
-                } else {
-                    console.error("Erro ao salvar no Google Sheets:", result.error);
-                }
-            } catch (error) {
-                console.error("Erro ao enviar dados para o Google Sheets:", error);
-            }
-
             // Marcar os assentos como vendidos
-            const soldSeats = JSON.parse(localStorage.getItem('soldSeats')) || [];
+            const soldSeats = await loadSoldSeats();
             selectedSeats.forEach(seat => {
+                const seatId = seat.parentElement.parentElement.querySelector('.row-label').textContent + seat.textContent;
                 seat.classList.remove('selected');
                 seat.classList.add('sold');
-                soldSeats.push(seat.textContent);
+                if (!soldSeats.includes(seatId)) {
+                    soldSeats.push(seatId);
+                }
             });
-
-            // Salvar os assentos vendidos no localStorage
-            localStorage.setItem('soldSeats', JSON.stringify(soldSeats));
+            await saveSoldSeats(soldSeats);
 
             // Redirecionar para o WhatsApp
             window.open(whatsappUrl, '_blank');
@@ -254,13 +257,6 @@
             form.reset();
             updateTotalPrice();
         });
-
-        // Função para atualizar o preço total
-        function updateTotalPrice() {
-            const selectedSeats = document.querySelectorAll('.seat.selected').length;
-            const totalPrice = selectedSeats * 5; // R$ 5,00 por assento
-            document.getElementById('total-price').textContent = `Total: R$ ${totalPrice.toFixed(2)}`;
-        }
     </script>
 </body>
 </html>
