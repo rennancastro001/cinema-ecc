@@ -149,8 +149,7 @@
 
         // Função para carregar assentos vendidos do localStorage
         function loadSoldSeats() {
-            const soldSeats = JSON.parse(localStorage.getItem('soldSeats')) || [];
-            return soldSeats;
+            return JSON.parse(localStorage.getItem('soldSeats')) || [];
         }
 
         // Função para salvar assentos vendidos no localStorage
